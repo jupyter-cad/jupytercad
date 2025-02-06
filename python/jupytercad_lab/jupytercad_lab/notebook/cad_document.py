@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import tempfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
@@ -43,6 +44,11 @@ class CadDocument(CommWidget):
 
     def __init__(self, path: Optional[str] = None):
         comm_metadata = CadDocument._path_to_comm(path)
+
+        # Create an empty project file if it does not exist
+        if comm_metadata["path"] and not os.path.isfile(comm_metadata["path"]):
+            with open(comm_metadata["path"], "w") as fd:
+                fd.write("{}")
 
         ydoc = Doc()
 

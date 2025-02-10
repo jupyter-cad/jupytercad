@@ -1,6 +1,9 @@
 import { ISignal } from '@lumino/signaling';
 import { IJupyterCadModel, IJupyterCadDoc, IDict } from '@jupytercad/schema';
-import { IJupyterCadTracker, IJupyterCadOutputwidget } from '@jupytercad/schema';
+import {
+  IJupyterCadTracker,
+  IJupyterCadOutputwidget
+} from '@jupytercad/schema';
 import { MainViewModel } from './3dview/mainviewmodel';
 import { WidgetTracker } from '@jupyterlab/apputils';
 

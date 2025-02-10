@@ -18,16 +18,12 @@ export class ReactAnnotations extends React.Component<IProps> {
 
     this._model = props.model;
 
-    this._model.contextChanged.connect(async () => {
-      await this._model?.context?.ready;
+    this._model.modelChanged.connect(async () => {
+      // await this._model?.model?.ready;
 
-      this._model?.context?.model?.sharedMetadataChanged.disconnect(
-        updateCallback
-      );
+      this._model?.model?.sharedMetadataChanged.disconnect(updateCallback);
       this._model = props.model;
-      this._model?.context?.model?.sharedMetadataChanged.connect(
-        updateCallback
-      );
+      this._model?.model?.sharedMetadataChanged.connect(updateCallback);
       this.forceUpdate();
     });
   }

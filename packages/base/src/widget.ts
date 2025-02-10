@@ -1,14 +1,16 @@
+import { MainAreaWidget } from '@jupyterlab/apputils';
 import {
   IJCadWorkerRegistry,
   IJupyterCadModel,
-  IJupyterCadWidget
+  IJupyterCadDocumentWidget,
+  IJupyterCadOutputWidget
 } from '@jupytercad/schema';
 import { ConsolePanel, IConsoleTracker } from '@jupyterlab/console';
 import { DocumentWidget } from '@jupyterlab/docregistry';
 import { IObservableMap, ObservableMap } from '@jupyterlab/observables';
 import { JSONValue } from '@lumino/coreutils';
 import { ISignal, Signal } from '@lumino/signaling';
-import { SplitPanel } from '@lumino/widgets';
+import { SplitPanel, Widget } from '@lumino/widgets';
 import { JupyterCadMainViewPanel } from './3dview';
 import { MainViewModel } from './3dview/mainviewmodel';
 import { ConsoleView } from './console';
@@ -19,15 +21,25 @@ import {
   ExplodedView,
   SplitScreenSettings
 } from './types';
+import { MessageLoop } from '@lumino/messaging';
 
-export class JupyterCadWidget
+const CELL_OUTPUT_WIDGET_CLASS = 'jcad-cell-output-widget';
+
+export type JupyterCadOutputwidget =
+  | JupyterCadDocumentWidget
+  | JupyterCadOutputWidget;
+export class JupyterCadDocumentWidget
   extends DocumentWidget<JupyterCadPanel, IJupyterCadModel>
-  implements IJupyterCadWidget
+  implements IJupyterCadDocumentWidget
 {
   constructor(
     options: DocumentWidget.IOptions<JupyterCadPanel, IJupyterCadModel>
   ) {
     super(options);
+  }
+
+  get model(): IJupyterCadModel {
+    return this.context.model;
   }
 
   /**
@@ -41,6 +53,49 @@ export class JupyterCadWidget
   onResize = (msg: any): void => {
     window.dispatchEvent(new Event('resize'));
   };
+}
+
+/**
+ * A main area widget designed to be used as Notebook cell output widget, to ease the
+ * integration of toolbar and tracking.
+ */
+export class JupyterCadOutputWidget
+  extends MainAreaWidget<JupyterCadPanel>
+  implements IJupyterCadOutputWidget
+{
+  constructor(options: JupyterCadOutputWidget.IOptions) {
+    super(options);
+    this.addClass(CELL_OUTPUT_WIDGET_CLASS);
+    this.model = options.model;
+
+    this.resizeObserver = new ResizeObserver(() => {
+      // Send a resize message to the widget, to update the child size.
+      MessageLoop.sendMessage(this, Widget.ResizeMessage.UnknownSize);
+    });
+    this.resizeObserver.observe(this.node);
+
+    this.model.disposed.connect(() => this.dispose());
+  }
+
+  /**
+   * Dispose of the resources held by the widget.
+   */
+  dispose(): void {
+    if (!this.isDisposed) {
+      this.resizeObserver.disconnect();
+      this.content.dispose();
+      super.dispose();
+    }
+  }
+
+  readonly model: IJupyterCadModel;
+  readonly resizeObserver: ResizeObserver;
+}
+
+export namespace JupyterCadOutputWidget {
+  export interface IOptions extends MainAreaWidget.IOptions<JupyterCadPanel> {
+    model: IJupyterCadModel;
+  }
 }
 
 export class JupyterCadPanel extends SplitPanel {

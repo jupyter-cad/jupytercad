@@ -164,13 +164,13 @@ class ObjectTreeReact extends React.Component<IProps, IStates> {
         this.props.cpModel.disconnect(this._sharedJcadModelChanged);
         this.props.cpModel.disconnect(this._onClientSharedStateChanged);
 
-        document.context.model.sharedObjectsChanged.connect(
+        document.model.sharedObjectsChanged.connect(
           this._sharedJcadModelChanged
         );
-        document.context.model.clientStateChanged.connect(
+        document.model.clientStateChanged.connect(
           this._onClientSharedStateChanged
         );
-        document.context.model.sharedOptionsChanged.connect(
+        document.model.sharedOptionsChanged.connect(
           this._onClientSharedOptionsChanged
         );
 
@@ -179,20 +179,20 @@ class ObjectTreeReact extends React.Component<IProps, IStates> {
         if (!currentSelection) {
           this.setState(old => ({
             ...old,
-            filePath: document.context.localPath,
+            filePath: document.model.filePath,
             jcadObject: this.props.cpModel.jcadModel?.getAllObject(),
             options: this.props.cpModel.sharedModel?.options,
-            clientId: document.context.model.getClientId()
+            clientId: document.model.getClientId()
           }));
         } else {
           this.setState(old => ({
             ...old,
             selectedNodes: currentSelection.newSelectedNodes,
             openNodes: currentSelection.newOpenNodes,
-            filePath: document.context.localPath,
+            filePath: document.model.filePath,
             jcadObject: this.props.cpModel.jcadModel?.getAllObject(),
             options: this.props.cpModel.sharedModel?.options,
-            clientId: document.context.model.getClientId()
+            clientId: document.model.getClientId()
           }));
         }
       } else {

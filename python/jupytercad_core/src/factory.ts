@@ -11,7 +11,7 @@ import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
 import { IEditorMimeTypeService } from '@jupyterlab/codeeditor';
 import {
   JupyterCadPanel,
-  JupyterCadWidget,
+  JupyterCadDocumentWidget,
   ToolbarWidget
 } from '@jupytercad/base';
 import { ServiceManager } from '@jupyterlab/services';
@@ -29,8 +29,8 @@ interface IOptions extends DocumentRegistry.IWidgetFactoryOptions {
   backendCheck?: () => boolean;
 }
 
-export class JupyterCadWidgetFactory extends ABCWidgetFactory<
-  JupyterCadWidget,
+export class JupyterCadDocumentWidgetFactory extends ABCWidgetFactory<
+  JupyterCadDocumentWidget,
   JupyterCadModel
 > {
   constructor(private options: IOptions) {
@@ -50,7 +50,7 @@ export class JupyterCadWidgetFactory extends ABCWidgetFactory<
    */
   protected createNewWidget(
     context: DocumentRegistry.IContext<JupyterCadModel>
-  ): JupyterCadWidget {
+  ): JupyterCadDocumentWidget {
     if (this._backendCheck) {
       const checked = this._backendCheck();
       if (!checked) {
@@ -58,6 +58,7 @@ export class JupyterCadWidgetFactory extends ABCWidgetFactory<
       }
     }
     const { model } = context;
+    model.filePath = context.localPath;
     const content = new JupyterCadPanel({
       model,
       workerRegistry: this._workerRegistry,
@@ -73,7 +74,7 @@ export class JupyterCadWidgetFactory extends ABCWidgetFactory<
       model,
       externalCommands: this._externalCommandRegistry.getCommands()
     });
-    return new JupyterCadWidget({ context, content, toolbar });
+    return new JupyterCadDocumentWidget({ context, content, toolbar });
   }
 
   private _commands: CommandRegistry;

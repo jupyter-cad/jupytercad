@@ -4,7 +4,6 @@ import {
   IJupyterCadModel
 } from '@jupytercad/schema';
 import { Dialog } from '@jupyterlab/apputils';
-import { DocumentRegistry } from '@jupyterlab/docregistry';
 import * as React from 'react';
 
 import { ObjectPropertiesForm } from './panelview/formbuilder';
@@ -21,7 +20,7 @@ export interface IFormDialogOptions {
     value: any,
     parentType: 'dialog' | 'panel'
   ) => void;
-  context: DocumentRegistry.IContext<IJupyterCadModel>;
+  model: IJupyterCadModel;
 }
 
 export class FormDialog extends Dialog<IDict> {
@@ -35,8 +34,8 @@ export class FormDialog extends Dialog<IDict> {
         this.resolve(0);
       };
     }
-    const filePath = options.context.path;
-    const jcadModel = options.context.model;
+    const filePath = options.model.filePath;
+    const jcadModel = options.model;
     const body = (
       <div style={{ overflow: 'hidden' }}>
         <ObjectPropertiesForm

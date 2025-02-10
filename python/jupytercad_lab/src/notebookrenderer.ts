@@ -98,7 +98,7 @@ export const notebookRenderePlugin: JupyterFrontEndPlugin<void> = {
       }
     }
 
-    class YJupyterCADWidget implements IJupyterYWidget {
+    class YJupyterCadOutputwidget implements IJupyterYWidget {
       constructor(yModel: YJupyterCADModel, node: HTMLElement) {
         this.yModel = yModel;
         this.node = node;
@@ -121,7 +121,7 @@ export const notebookRenderePlugin: JupyterFrontEndPlugin<void> = {
     yWidgetManager.registerWidget(
       '@jupytercad:widget',
       YJupyterCADModelFactory,
-      YJupyterCADWidget
+      YJupyterCadOutputwidget
     );
   }
 };

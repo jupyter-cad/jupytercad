@@ -1,7 +1,11 @@
 import { ISignal } from '@lumino/signaling';
 import { IJupyterCadModel, IJupyterCadDoc, IDict } from '@jupytercad/schema';
-import { IJupyterCadTracker, IJupyterCadWidget } from '@jupytercad/schema';
+import {
+  IJupyterCadTracker,
+  IJupyterCadOutputwidget
+} from '@jupytercad/schema';
 import { MainViewModel } from './3dview/mainviewmodel';
+import { WidgetTracker } from '@jupyterlab/apputils';
 
 export { IDict };
 export type ValueOf<T> = T[keyof T];
@@ -44,9 +48,10 @@ export type SplitScreenSettings = {
   enabled: boolean;
 };
 
+export type JupyterCadTracker = WidgetTracker<IJupyterCadOutputwidget>;
 export interface IControlPanelModel {
   disconnect(f: any): void;
-  documentChanged: ISignal<IJupyterCadTracker, IJupyterCadWidget | null>;
+  documentChanged: ISignal<IJupyterCadTracker, IJupyterCadOutputwidget | null>;
   filePath: string | undefined;
   jcadModel: IJupyterCadModel | undefined;
   sharedModel: IJupyterCadDoc | undefined;

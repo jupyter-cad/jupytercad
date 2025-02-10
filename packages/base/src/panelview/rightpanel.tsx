@@ -13,7 +13,6 @@ import { SuggestionPanel } from '../suggestion/suggestionpanel';
 import { SuggestionModel } from '../suggestion/model';
 import { IForkManager } from '@jupyter/docprovider';
 import { ICollaborativeDrive } from '@jupyter/collaborative-drive';
-import { DocumentRegistry } from '@jupyterlab/docregistry';
 
 export class RightPanelWidget extends SidePanel {
   constructor(options: RightPanelWidget.IOptions) {
@@ -45,29 +44,29 @@ export class RightPanelWidget extends SidePanel {
     }
 
     this._handleFileChange = () => {
-      header.title.label = this._currentContext?.localPath || '-';
+      header.title.label = this._currentModel?.filePath || '-';
     };
 
     options.tracker.currentChanged.connect(async (_, changed) => {
       if (changed) {
-        if (this._currentContext) {
-          this._currentContext.pathChanged.disconnect(this._handleFileChange);
+        if (this._currentModel) {
+          this._currentModel.pathChanged.disconnect(this._handleFileChange);
         }
-        this._currentContext = changed.context;
-        header.title.label = this._currentContext.localPath;
-        this._currentContext.pathChanged.connect(this._handleFileChange);
-        this._annotationModel.context =
-          options.tracker.currentWidget?.context || undefined;
-        await changed.context.ready;
+        this._currentModel = changed.model;
+        header.title.label = this._currentModel.filePath;
+        this._currentModel.pathChanged.connect(this._handleFileChange);
+        this._annotationModel.model =
+          options.tracker.currentWidget?.model || undefined;
+        // await changed.model.ready;
 
         suggestionModel?.switchContext({
-          filePath: changed.context.localPath,
-          jupytercadModel: changed.context?.model
+          filePath: changed.model.filePath,
+          jupytercadModel: changed.model
         });
       } else {
         header.title.label = '-';
-        this._currentContext = null;
-        this._annotationModel.context = undefined;
+        this._currentModel = null;
+        this._annotationModel.model = undefined;
         suggestionModel?.switchContext({
           filePath: '',
           jupytercadModel: undefined
@@ -80,7 +79,7 @@ export class RightPanelWidget extends SidePanel {
     super.dispose();
   }
 
-  private _currentContext: DocumentRegistry.IContext<IJupyterCadModel> | null;
+  private _currentModel: IJupyterCadModel | null;
   private _handleFileChange: () => void;
   private _model: IControlPanelModel;
   private _annotationModel: IAnnotationModel;

@@ -39,14 +39,15 @@ import {
 } from './tools';
 import keybindings from './keybindings.json';
 import { DEFAULT_MESH_COLOR } from './3dview/helpers';
-import { JupyterCadPanel, JupyterCadWidget } from './widget';
-import { DocumentRegistry } from '@jupyterlab/docregistry';
+import { JupyterCadPanel, JupyterCadOutputwidget } from './widget';
 import { PathExt } from '@jupyterlab/coreutils';
 import { MainViewModel } from './3dview/mainviewmodel';
 import { handleRemoveObject } from './panelview';
 import { v4 as uuid } from 'uuid';
-import { ExplodedView } from './types';
+import { ExplodedView, JupyterCadTracker } from './types';
 import { JSONObject } from '@lumino/coreutils';
+import { JupyterCadDocumentWidget } from './widget';
+
 export function newName(type: string, model: IJupyterCadModel): string {
   const sharedModel = model.sharedModel;
 
@@ -202,10 +203,10 @@ function getSelectedEdge(
 export async function executeOperator(
   name: string,
   objectModel: IJCadObject,
-  current: JupyterCadWidget,
+  current: JupyterCadOutputwidget,
   transaction: (sharedModel: IJupyterCadDoc) => any
 ) {
-  const sharedModel = current.context.model.sharedModel;
+  const sharedModel = current.model.sharedModel;
 
   if (!sharedModel) {
     return;
@@ -221,7 +222,7 @@ export async function executeOperator(
   }
 
   // Try a dry run with the update content to verify its feasibility
-  const currentJcadContent = current.context.model.getContent();
+  const currentJcadContent = current.model.getContent();
   const updatedContent: IJCadContent = {
     ...currentJcadContent,
     objects: [...currentJcadContent.objects, objectModel]
@@ -243,7 +244,7 @@ export async function executeOperator(
   }
   sharedModel.transact(() => {
     transaction(sharedModel);
-    current.context.model.syncSelected(
+    current.model.syncSelected(
       { [objectModel.name]: { type: 'shape' } },
       uuid()
     );
@@ -270,7 +271,7 @@ const OPERATORS = {
         Placement: { Position: [0, 0, 0], Axis: [0, 0, 1], Angle: 0 }
       };
     },
-    syncData: (current: JupyterCadWidget) => {
+    syncData: (current: JupyterCadOutputwidget) => {
       return async (props: IDict) => {
         const { Name, ...parameters } = props;
         const objectModel: IJCadObject = {
@@ -315,7 +316,7 @@ const OPERATORS = {
         Placement: { Position: [0, 0, 0], Axis: [0, 0, 1], Angle: 0 }
       };
     },
-    syncData: (current: JupyterCadWidget) => {
+    syncData: (current: JupyterCadOutputwidget) => {
       return async (props: IDict) => {
         const { Name, ...parameters } = props;
         const objectModel: IJCadObject = {
@@ -363,7 +364,7 @@ const OPERATORS = {
         Placement: { Position: [0, 0, 0], Axis: [0, 0, 1], Angle: 0 }
       };
     },
-    syncData: (current: JupyterCadWidget) => {
+    syncData: (current: JupyterCadOutputwidget) => {
       return async (props: IDict) => {
         const { Name, ...parameters } = props;
         const objectModel: IJCadObject = {
@@ -407,7 +408,7 @@ const OPERATORS = {
         Placement: { Position: [0, 0, 0], Axis: [0, 0, 1], Angle: 0 }
       };
     },
-    syncData: (current: JupyterCadWidget) => {
+    syncData: (current: JupyterCadOutputwidget) => {
       return async (props: IDict) => {
         const { Name, ...parameters } = props;
         const objectModel: IJCadObject = {
@@ -450,7 +451,7 @@ const OPERATORS = {
         Placement: { Position: [0, 0, 0], Axis: [0, 0, 1], Angle: 0 }
       };
     },
-    syncData: (current: JupyterCadWidget) => {
+    syncData: (current: JupyterCadOutputwidget) => {
       return async (props: IDict) => {
         const { Name, ...parameters } = props;
         const objectModel: IJCadObject = {
@@ -491,7 +492,7 @@ const OPERATORS = {
         Placement: { Position: [0, 0, 0], Axis: [0, 0, 1], Angle: 0 }
       };
     },
-    syncData: (current: JupyterCadWidget) => {
+    syncData: (current: JupyterCadOutputwidget) => {
       return async (props: IDict) => {
         const { Name, ...parameters } = props;
         const objectModel: IJCadObject = {
@@ -629,17 +630,17 @@ const EXPORT_FORM = {
       }
     }
   },
-  default: (context: DocumentRegistry.IContext<IJupyterCadModel>) => {
+  default: (model: IJupyterCadModel) => {
     return {
-      Name: PathExt.basename(context.path).replace(
-        PathExt.extname(context.path),
+      Name: PathExt.basename(model.filePath).replace(
+        PathExt.extname(model.filePath),
         '.jcad'
       )
     };
   },
-  syncData: (context: DocumentRegistry.IContext<IJupyterCadModel>) => {
+  syncData: (model: IJupyterCadModel) => {
     return (props: IDict) => {
-      const endpoint = context.model?.sharedModel?.toJcadEndpoint;
+      const endpoint = model.sharedModel?.toJcadEndpoint;
       if (!endpoint) {
         showErrorMessage('Error', 'Missing endpoint.');
         return;
@@ -648,7 +649,7 @@ const EXPORT_FORM = {
       requestAPI<{ done: boolean }>(endpoint, {
         method: 'POST',
         body: JSON.stringify({
-          path: context.path,
+          path: model.filePath,
           newName: Name
         })
       });
@@ -666,9 +667,8 @@ function loadKeybindings(commands: CommandRegistry, keybindings: any[]) {
   });
 }
 
-function getSelectedObjectId(widget: JupyterCadWidget): string {
-  const selected =
-    widget.context.model.sharedModel.awareness.getLocalState()?.selected;
+function getSelectedObjectId(widget: JupyterCadOutputwidget): string {
+  const selected = widget.model.sharedModel.awareness.getLocalState()?.selected;
 
   if (selected && selected.value) {
     const selectedKey = Object.keys(selected.value)[0];
@@ -686,7 +686,7 @@ function getSelectedObjectId(widget: JupyterCadWidget): string {
  */
 export function addCommands(
   app: JupyterFrontEnd,
-  tracker: WidgetTracker<JupyterCadWidget>,
+  tracker: WidgetTracker<JupyterCadOutputwidget>,
   translator: ITranslator,
   formSchemaRegistry: IJCadFormSchemaRegistry,
   workerRegistry: IJCadWorkerRegistry,
@@ -701,7 +701,7 @@ export function addCommands(
     label: trans.__('Toggle console'),
     isEnabled: () => {
       return tracker.currentWidget
-        ? tracker.currentWidget.context.model.sharedModel.editable
+        ? tracker.currentWidget.model.sharedModel.editable
         : false;
     },
     execute: async () => await Private.toggleConsole(tracker)
@@ -710,7 +710,7 @@ export function addCommands(
     label: trans.__('Execute console'),
     isEnabled: () => {
       return tracker.currentWidget
-        ? tracker.currentWidget.context.model.sharedModel.editable
+        ? tracker.currentWidget.model.sharedModel.editable
         : false;
     },
     execute: () => Private.executeConsole(tracker)
@@ -719,7 +719,7 @@ export function addCommands(
     label: trans.__('Remove console'),
     isEnabled: () => {
       return tracker.currentWidget
-        ? tracker.currentWidget.context.model.sharedModel.editable
+        ? tracker.currentWidget.model.sharedModel.editable
         : false;
     },
     execute: () => Private.removeConsole(tracker)
@@ -756,14 +756,14 @@ export function addCommands(
     label: trans.__('Redo'),
     isEnabled: () => {
       return tracker.currentWidget
-        ? tracker.currentWidget.context.model.sharedModel.editable
+        ? tracker.currentWidget.model.sharedModel.editable
         : false;
     },
     execute: args => {
       const current = tracker.currentWidget;
 
       if (current) {
-        return current.context.model.sharedModel.redo();
+        return current.model.sharedModel.redo();
       }
     },
     icon: redoIcon
@@ -773,14 +773,14 @@ export function addCommands(
     label: trans.__('Undo'),
     isEnabled: () => {
       return tracker.currentWidget
-        ? tracker.currentWidget.context.model.sharedModel.editable
+        ? tracker.currentWidget.model.sharedModel.editable
         : false;
     },
     execute: args => {
       const current = tracker.currentWidget;
 
       if (current) {
-        return current.context.model.sharedModel.undo();
+        return current.model.sharedModel.undo();
       }
     },
     icon: undoIcon
@@ -790,7 +790,7 @@ export function addCommands(
     iconClass: 'fa fa-pencil',
     isEnabled: () => {
       return tracker.currentWidget
-        ? tracker.currentWidget.context.model.sharedModel.editable
+        ? tracker.currentWidget.model.sharedModel.editable
         : false;
     },
     execute: async args => {
@@ -801,7 +801,7 @@ export function addCommands(
       }
 
       const props = {
-        sharedModel: current.context.model.sharedModel,
+        sharedModel: current.model.sharedModel,
         closeCallback: {
           handler: () => {
             /* Awful hack to allow the body can close the dialog*/
@@ -818,7 +818,7 @@ export function addCommands(
     label: trans.__('Remove Object'),
     isEnabled: () => {
       const current = tracker.currentWidget;
-      return current ? current.context.model.sharedModel.editable : false;
+      return current ? current.model.sharedModel.editable : false;
     },
     execute: () => {
       const current = tracker.currentWidget;
@@ -831,7 +831,7 @@ export function addCommands(
         console.warn('No object is selected.');
         return;
       }
-      const sharedModel = current.context.model.sharedModel;
+      const sharedModel = current.model.sharedModel;
 
       handleRemoveObject(objectId, sharedModel, () =>
         sharedModel.awareness.setLocalStateField('selected', {})
@@ -843,7 +843,7 @@ export function addCommands(
     label: trans.__('New Box'),
     isEnabled: () => {
       return tracker.currentWidget
-        ? tracker.currentWidget.context.model.sharedModel.editable
+        ? tracker.currentWidget.model.sharedModel.editable
         : false;
     },
     icon: boxIcon,
@@ -854,7 +854,7 @@ export function addCommands(
     label: trans.__('New Cylinder'),
     isEnabled: () => {
       return tracker.currentWidget
-        ? tracker.currentWidget.context.model.sharedModel.editable
+        ? tracker.currentWidget.model.sharedModel.editable
         : false;
     },
     icon: cylinderIcon,
@@ -865,7 +865,7 @@ export function addCommands(
     label: trans.__('New Sphere'),
     isEnabled: () => {
       return tracker.currentWidget
-        ? tracker.currentWidget.context.model.sharedModel.editable
+        ? tracker.currentWidget.model.sharedModel.editable
         : false;
     },
     icon: sphereIcon,
@@ -876,7 +876,7 @@ export function addCommands(
     label: trans.__('New Cone'),
     isEnabled: () => {
       return tracker.currentWidget
-        ? tracker.currentWidget.context.model.sharedModel.editable
+        ? tracker.currentWidget.model.sharedModel.editable
         : false;
     },
     icon: coneIcon,
@@ -887,7 +887,7 @@ export function addCommands(
     label: trans.__('New Torus'),
     isEnabled: () => {
       return tracker.currentWidget
-        ? tracker.currentWidget.context.model.sharedModel.editable
+        ? tracker.currentWidget.model.sharedModel.editable
         : false;
     },
     icon: torusIcon,
@@ -898,7 +898,7 @@ export function addCommands(
     label: trans.__('Extrusion'),
     isEnabled: () => {
       return tracker.currentWidget
-        ? tracker.currentWidget.context.model.sharedModel.editable
+        ? tracker.currentWidget.model.sharedModel.editable
         : false;
     },
     icon: extrusionIcon,
@@ -909,7 +909,7 @@ export function addCommands(
     label: trans.__('Cut'),
     isEnabled: () => {
       return tracker.currentWidget
-        ? tracker.currentWidget.context.model.sharedModel.editable
+        ? tracker.currentWidget.model.sharedModel.editable
         : false;
     },
     icon: cutIcon,
@@ -920,7 +920,7 @@ export function addCommands(
     label: trans.__('Union'),
     isEnabled: () => {
       return tracker.currentWidget
-        ? tracker.currentWidget.context.model.sharedModel.editable
+        ? tracker.currentWidget.model.sharedModel.editable
         : false;
     },
     icon: unionIcon,
@@ -931,7 +931,7 @@ export function addCommands(
     label: trans.__('Intersection'),
     isEnabled: () => {
       return tracker.currentWidget
-        ? tracker.currentWidget.context.model.sharedModel.editable
+        ? tracker.currentWidget.model.sharedModel.editable
         : false;
     },
     icon: intersectionIcon,
@@ -968,10 +968,7 @@ export function addCommands(
     isEnabled: () => {
       const current = tracker.currentWidget;
 
-      if (
-        !current ||
-        !tracker.currentWidget.context.model.sharedModel.editable
-      ) {
+      if (!current || !tracker.currentWidget.model.sharedModel.editable) {
         return false;
       }
 
@@ -1006,7 +1003,7 @@ export function addCommands(
     label: trans.__('Make chamfer'),
     isEnabled: () => {
       return tracker.currentWidget
-        ? tracker.currentWidget.context.model.sharedModel.editable
+        ? tracker.currentWidget.model.sharedModel.editable
         : false;
     },
     icon: chamferIcon,
@@ -1017,7 +1014,7 @@ export function addCommands(
     label: trans.__('Make fillet'),
     isEnabled: () => {
       return tracker.currentWidget
-        ? tracker.currentWidget.context.model.sharedModel.editable
+        ? tracker.currentWidget.model.sharedModel.editable
         : false;
     },
     icon: filletIcon,
@@ -1036,7 +1033,7 @@ export function addCommands(
       }
 
       const dialog = new FormDialog({
-        context: current.context,
+        model: current.model,
         title: AXES_FORM.title,
         schema: AXES_FORM.schema,
         sourceData: AXES_FORM.default(current.content),
@@ -1066,7 +1063,7 @@ export function addCommands(
       }
 
       const dialog = new FormDialog({
-        context: current.context,
+        model: current.model,
         title: EXPLODED_VIEW_FORM.title,
         schema: EXPLODED_VIEW_FORM.schema,
         sourceData: EXPLODED_VIEW_FORM.default(current.content),
@@ -1094,7 +1091,7 @@ export function addCommands(
       }
 
       const dialog = new FormDialog({
-        context: current.context,
+        model: current.model,
         title: CAMERA_FORM.title,
         schema: CAMERA_FORM.schema,
         sourceData: CAMERA_FORM.default(current.content),
@@ -1164,9 +1161,7 @@ export function addCommands(
   commands.addCommand(CommandIDs.exportJcad, {
     label: trans.__('Export to .jcad'),
     isEnabled: () => {
-      return Boolean(
-        tracker.currentWidget?.context?.model?.sharedModel?.toJcadEndpoint
-      );
+      return Boolean(tracker.currentWidget?.model?.sharedModel?.toJcadEndpoint);
     },
     iconClass: 'fa fa-file-export',
     execute: async () => {
@@ -1177,11 +1172,11 @@ export function addCommands(
       }
 
       const dialog = new FormDialog({
-        context: current.context,
+        model: current.model,
         title: EXPORT_FORM.title,
         schema: EXPORT_FORM.schema,
-        sourceData: EXPORT_FORM.default(tracker.currentWidget?.context),
-        syncData: EXPORT_FORM.syncData(tracker.currentWidget?.context),
+        sourceData: EXPORT_FORM.default(tracker.currentWidget?.model),
+        syncData: EXPORT_FORM.syncData(tracker.currentWidget?.model),
         cancelButton: true
       });
       await dialog.launch();
@@ -1191,7 +1186,7 @@ export function addCommands(
     label: trans.__('Copy Object'),
     isEnabled: () => {
       const current = tracker.currentWidget;
-      return current ? current.context.model.sharedModel.editable : false;
+      return current ? current.model.sharedModel.editable : false;
     },
     execute: () => {
       const current = tracker.currentWidget;
@@ -1200,7 +1195,7 @@ export function addCommands(
       }
 
       const objectId = getSelectedObjectId(current);
-      const sharedModel = current.context.model.sharedModel;
+      const sharedModel = current.model.sharedModel;
       const objectData = sharedModel.getObjectByName(objectId);
 
       if (!objectData) {
@@ -1208,15 +1203,15 @@ export function addCommands(
         return;
       }
 
-      current.context.model.setCopiedObject(objectData);
+      current.model.setCopiedObject(objectData);
     }
   });
   commands.addCommand(CommandIDs.pasteObject, {
     label: trans.__('Paste Object'),
     isEnabled: () => {
       const current = tracker.currentWidget;
-      const clipboard = current?.context.model.getCopiedObject();
-      const editable = current?.context.model.sharedModel.editable;
+      const clipboard = current?.model.getCopiedObject();
+      const editable = current?.model.sharedModel.editable;
       return !!(current && clipboard && editable);
     },
     execute: () => {
@@ -1225,8 +1220,8 @@ export function addCommands(
         return;
       }
 
-      const sharedModel = current.context.model.sharedModel;
-      const copiedObject = current.context.model.getCopiedObject();
+      const sharedModel = current.model.sharedModel;
+      const copiedObject = current.model.getCopiedObject();
       if (!copiedObject) {
         console.error('No object in clipboard to paste.');
         return;
@@ -1242,7 +1237,7 @@ export function addCommands(
         newName = `${originalName} Copy${counter > 1 ? ` ${counter}` : ''}`;
         counter++;
       }
-      const jcadModel = current.context.model;
+      const jcadModel = current.model;
       const newObject = {
         ...clipboard,
         name: newName,
@@ -1326,7 +1321,7 @@ namespace Private {
 
   export function createPart(
     part: keyof typeof PARTS,
-    tracker: WidgetTracker<JupyterCadWidget>
+    tracker: WidgetTracker<JupyterCadOutputwidget>
   ) {
     return async (args: any) => {
       const current = tracker.currentWidget;
@@ -1337,7 +1332,7 @@ namespace Private {
 
       const value = PARTS[part];
 
-      current.context.model.syncFormData(value);
+      current.model.syncFormData(value);
 
       const syncSelectedField = (
         id: string | null,
@@ -1349,7 +1344,7 @@ namespace Private {
           const prefix = id.split('_')[0];
           property = id.substring(prefix.length);
         }
-        current.context.model.syncSelectedPropField({
+        current.model.syncSelectedPropField({
           id: property,
           value,
           parentType
@@ -1357,9 +1352,9 @@ namespace Private {
       };
 
       const dialog = new FormDialog({
-        context: current.context,
+        model: current.model,
         title: value.title,
-        sourceData: value.default(current.context.model),
+        sourceData: value.default(current.model),
         schema: FORM_SCHEMA[value.shape],
         syncData: async (props: IDict) => {
           const { Name, ...parameters } = props;
@@ -1370,13 +1365,13 @@ namespace Private {
             name: Name
           };
 
-          const jcadModel = current.context.model;
+          const jcadModel = current.model;
 
           if (jcadModel) {
             const sharedModel = jcadModel.sharedModel;
             if (!sharedModel.objectExists(objectModel.name)) {
               // Try a dry run with the update content to verify its feasibility
-              const currentJcadContent = current.context.model.getContent();
+              const currentJcadContent = current.model.getContent();
               const updatedContent: IJCadContent = {
                 ...currentJcadContent,
                 objects: [...currentJcadContent.objects, objectModel]
@@ -1408,7 +1403,7 @@ namespace Private {
           }
         },
         cancelButton: () => {
-          current.context.model.syncFormData(undefined);
+          current.model.syncFormData(undefined);
         },
         syncSelectedPropField: syncSelectedField
       });
@@ -1418,7 +1413,7 @@ namespace Private {
 
   export function executeOperator(
     operator: keyof typeof OPERATORS,
-    tracker: WidgetTracker<JupyterCadWidget>
+    tracker: WidgetTracker<JupyterCadOutputwidget>
   ) {
     return async (args: any) => {
       const current = tracker.currentWidget;
@@ -1431,7 +1426,7 @@ namespace Private {
 
       // Fill form schema with available objects
       const form_schema = JSON.parse(JSON.stringify(FORM_SCHEMA[op.shape]));
-      const allObjects = current.context.model.getAllObject().map(o => o.name);
+      const allObjects = current.model.getAllObject().map(o => o.name);
       for (const prop in form_schema['properties']) {
         const fcType = form_schema['properties'][prop]['fcType'];
         if (fcType) {
@@ -1449,9 +1444,9 @@ namespace Private {
       }
 
       const dialog = new FormDialog({
-        context: current.context,
+        model: current.model,
         title: op.title,
-        sourceData: op.default(current.context.model),
+        sourceData: op.default(current.model),
         schema: form_schema,
         syncData: op.syncData(current),
         cancelButton: true
@@ -1461,42 +1456,35 @@ namespace Private {
   }
 
   export function executeConsole(
-    tracker: WidgetTracker<JupyterCadWidget>
+    tracker: WidgetTracker<JupyterCadOutputwidget>
   ): void {
     const current = tracker.currentWidget;
 
-    if (!current) {
+    if (!current || !(current instanceof JupyterCadDocumentWidget)) {
       return;
     }
     current.content.executeConsole();
   }
 
   export function removeConsole(
-    tracker: WidgetTracker<JupyterCadWidget>
+    tracker: WidgetTracker<JupyterCadOutputwidget>
   ): void {
     const current = tracker.currentWidget;
 
-    if (!current) {
+    if (!current || !(current instanceof JupyterCadDocumentWidget)) {
       return;
     }
     current.content.removeConsole();
   }
 
   export async function toggleConsole(
-    tracker: WidgetTracker<JupyterCadWidget>
+    tracker: JupyterCadTracker
   ): Promise<void> {
     const current = tracker.currentWidget;
 
-    if (!current) {
+    if (!current || !(current instanceof JupyterCadDocumentWidget)) {
       return;
     }
-    const currentPath = current.context.path.split(':');
-    let realPath = '';
-    if (currentPath.length > 1) {
-      realPath = currentPath[1];
-    } else {
-      realPath = currentPath[0];
-    }
-    await current.content.toggleConsole(realPath);
+    await current.content.toggleConsole(current.model.filePath);
   }
 }

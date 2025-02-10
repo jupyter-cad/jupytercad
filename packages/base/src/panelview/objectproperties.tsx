@@ -21,7 +21,7 @@ import {
 } from '../tools';
 import { IControlPanelModel } from '../types';
 import { ObjectPropertiesForm } from './formbuilder';
-import { JupyterCadWidget } from '../widget';
+import { JupyterCadOutputwidget } from '../widget';
 
 export class ObjectProperties extends PanelWithToolbar {
   constructor(params: ObjectProperties.IOptions) {
@@ -79,8 +79,8 @@ export class ObjectProperties extends PanelWithToolbar {
           currentModel.clientStateChanged.disconnect(updateTitle);
         }
 
-        if (changed.context.model.sharedModel.editable) {
-          currentModel = changed.context.model;
+        if (changed.model.sharedModel.editable) {
+          currentModel = changed.model;
           const clients = currentModel.sharedModel.awareness.getStates() as Map<
             number,
             IJupyterCadClientState
@@ -140,7 +140,7 @@ class ObjectPropertiesReact extends React.Component<IProps, IStates> {
       if (changed) {
         this.props.cpModel.disconnect(this._sharedJcadModelChanged);
         this.props.cpModel.disconnect(this._onClientSharedStateChanged);
-        const currentModel = changed.context.model;
+        const currentModel = changed.model;
         currentModel.sharedObjectsChanged.connect(this._sharedJcadModelChanged);
         currentModel.sharedModelSwapped.connect(
           this._sharedModelSwappedHandler,
@@ -157,7 +157,7 @@ class ObjectPropertiesReact extends React.Component<IProps, IStates> {
             selectedObjectData: undefined,
             selectedObject: undefined,
             schema: undefined,
-            filePath: changed.context.localPath,
+            filePath: changed.model.filePath,
             jcadObject: this.props.cpModel.jcadModel?.getAllObject(),
             clientId: currentModel.getClientId()
           }),
@@ -190,7 +190,7 @@ class ObjectPropertiesReact extends React.Component<IProps, IStates> {
     }
 
     const currentWidget = this.props.tracker
-      .currentWidget as JupyterCadWidget | null;
+      .currentWidget as JupyterCadOutputwidget | null;
     if (!currentWidget) {
       return;
     }

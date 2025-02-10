@@ -6,7 +6,7 @@ import {
   IJCadWorkerRegistry,
   IJCadWorkerRegistryToken,
   IJupyterCadDocTracker,
-  IJupyterCadWidget,
+  IJupyterCadOutputwidget,
   IJCadExternalCommandRegistry,
   IJCadExternalCommandRegistryToken
 } from '@jupytercad/schema';
@@ -17,7 +17,7 @@ import {
 import { IThemeManager, WidgetTracker } from '@jupyterlab/apputils';
 
 import { JupyterCadStlModelFactory } from './modelfactory';
-import { JupyterCadWidgetFactory } from '../factory';
+import { JupyterCadDocumentWidgetFactory } from '../factory';
 import { JupyterCadStlDoc } from './model';
 import { stlIcon } from '@jupytercad/base';
 
@@ -25,13 +25,13 @@ const FACTORY = 'JupyterCAD STL Viewer';
 
 const activate = (
   app: JupyterFrontEnd,
-  tracker: WidgetTracker<IJupyterCadWidget>,
+  tracker: WidgetTracker<IJupyterCadOutputwidget>,
   themeManager: IThemeManager,
   workerRegistry: IJCadWorkerRegistry,
   externalCommandRegistry: IJCadExternalCommandRegistry,
   drive: ICollaborativeDrive | null
 ): void => {
-  const widgetFactory = new JupyterCadWidgetFactory({
+  const widgetFactory = new JupyterCadDocumentWidgetFactory({
     name: FACTORY,
     modelName: 'jupytercad-stlmodel',
     fileTypes: ['stl'],

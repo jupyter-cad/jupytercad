@@ -31,6 +31,7 @@ export class JupyterCadModel implements IJupyterCadModel {
     this._connectSignal();
     this.annotationModel = annotationModel;
     this._copiedObject = null;
+    this._pathChanged = new Signal<JupyterCadModel, string>(this);
   }
 
   readonly collaborative =
@@ -113,6 +114,25 @@ export class JupyterCadModel implements IJupyterCadModel {
   }
   get sharedModelSwapped(): ISignal<this, void> {
     return this._sharedModelSwapped;
+  }
+
+  /**
+   * Getter for the file path associated with the contents manager.
+   */
+  get filePath(): string {
+    return this._filePath;
+  }
+
+  /**
+   * Setter for the file path associated with the contents manager.
+   */
+  set filePath(path: string) {
+    this._filePath = path;
+    this._pathChanged.emit(path);
+  }
+
+  get pathChanged(): ISignal<JupyterCadModel, string> {
+    return this._pathChanged;
   }
 
   get disposed(): ISignal<JupyterCadModel, void> {
@@ -322,6 +342,8 @@ export class JupyterCadModel implements IJupyterCadModel {
   private _dirty = false;
   private _readOnly = false;
   private _isDisposed = false;
+  private _filePath: string;
+  private _pathChanged: Signal<JupyterCadModel, string>;
 
   private _userChanged = new Signal<this, IUserData[]>(this);
   private _usersMap?: Map<number, any>;

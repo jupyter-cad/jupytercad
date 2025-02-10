@@ -12,7 +12,7 @@ import {
   IJCadWorkerRegistry,
   IJCadWorkerRegistryToken,
   IJupyterCadDocTracker,
-  IJupyterCadWidget,
+  IJupyterCadOutputwidget,
   JupyterCadDoc
 } from '@jupytercad/schema';
 import {
@@ -44,7 +44,7 @@ namespace CommandIDs {
 
 const activate = (
   app: JupyterFrontEnd,
-  tracker: WidgetTracker<IJupyterCadWidget>,
+  tracker: WidgetTracker<IJupyterCadOutputwidget>,
   themeManager: IThemeManager,
   annotationModel: IAnnotationModel,
   browserFactory: IFileBrowserFactory,

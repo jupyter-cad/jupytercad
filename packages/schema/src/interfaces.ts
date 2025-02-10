@@ -365,7 +365,7 @@ export interface IJCadWorkerRegistry {
   getAllWorkers(): IJCadWorker[];
 }
 
-export type IJupyterCadTracker = IWidgetTracker<IJupyterCadWidget>;
+export type IJupyterCadTracker = IWidgetTracker<IJupyterCadOutputwidget>;
 
 export interface IJupyterCadDocumentWidget
   extends IDocumentWidget<SplitPanel, IJupyterCadModel> {
@@ -376,7 +376,7 @@ export interface IJupyterCadOutputWidget extends MainAreaWidget {
   model: IJupyterCadModel;
 }
 
-export type IJupyterCadWidget =
+export type IJupyterCadOutputwidget =
   | IJupyterCadDocumentWidget
   | IJupyterCadOutputWidget;
 

@@ -6,7 +6,7 @@ import {
   IJCadWorkerRegistry,
   IJCadWorkerRegistryToken,
   IJupyterCadDocTracker,
-  IJupyterCadWidget,
+  IJupyterCadOutputwidget,
   IJCadExternalCommandRegistry,
   IJCadExternalCommandRegistryToken
 } from '@jupytercad/schema';
@@ -25,7 +25,7 @@ const FACTORY = 'JupyterCAD STL Viewer';
 
 const activate = (
   app: JupyterFrontEnd,
-  tracker: WidgetTracker<IJupyterCadWidget>,
+  tracker: WidgetTracker<IJupyterCadOutputwidget>,
   themeManager: IThemeManager,
   workerRegistry: IJCadWorkerRegistry,
   externalCommandRegistry: IJCadExternalCommandRegistry,

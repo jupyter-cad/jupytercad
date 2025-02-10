@@ -21,7 +21,7 @@ import {
 } from '../tools';
 import { IControlPanelModel } from '../types';
 import { ObjectPropertiesForm } from './formbuilder';
-import { JupyterCadWidget } from '../widget';
+import { JupyterCadOutputwidget } from '../widget';
 
 export class ObjectProperties extends PanelWithToolbar {
   constructor(params: ObjectProperties.IOptions) {
@@ -190,7 +190,7 @@ class ObjectPropertiesReact extends React.Component<IProps, IStates> {
     }
 
     const currentWidget = this.props.tracker
-      .currentWidget as JupyterCadWidget | null;
+      .currentWidget as JupyterCadOutputwidget | null;
     if (!currentWidget) {
       return;
     }

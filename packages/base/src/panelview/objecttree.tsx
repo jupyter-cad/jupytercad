@@ -89,6 +89,8 @@ interface IStates {
   selectedNodes: string[];
   clientId: number | null; // ID of the yjs client
   id: string; // ID of the component, it is used to identify which component
+  editingNode: TreeNodeId | null;
+  editingNodeValue: string | null;
   //is the source of awareness updates.
   openNodes: (number | string)[];
 }
@@ -154,7 +156,9 @@ class ObjectTreeReact extends React.Component<IProps, IStates> {
       selectedNodes: [],
       clientId: null,
       id: uuid(),
-      openNodes: []
+      openNodes: [],
+      editingNode: null,
+      editingNodeValue: ''
     };
     this.props.cpModel.jcadModel?.sharedObjectsChanged.connect(
       this._sharedJcadModelChanged
@@ -464,8 +468,61 @@ class ObjectTreeReact extends React.Component<IProps, IStates> {
                       textOverflow: 'ellipsis',
                       overflowX: 'hidden'
                     }}
+                    onClick={() => this.setState({ editingNode: opts.node.id })}
                   >
-                    {opts.node.label}
+                    {this.state.editingNode === opts.node.id ? (
+                      <input
+                        type="text"
+                        value={this.state.editingNodeValue || opts.node.label}
+                        autoFocus
+                        onBlur={() => this.setState({ editingNode: null })}
+                        onChange={e =>
+                          this.setState({ editingNodeValue: e.target.value })
+                        }
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') {
+                            console.log(
+                              'Updated name:',
+                              this.state.editingNodeValue
+                            );
+                            const updatedName = this.state.editingNodeValue;
+                            const objectName = opts.node.id;
+
+                            if (this.props.cpModel.mainViewModel) {
+                              const obj =
+                                this.props.cpModel.jcadModel?.sharedModel.getObjectByName(
+                                  objectName as string
+                                );
+                              if (obj) {
+                                this.props.cpModel.sharedModel?.updateObjectByName(
+                                  objectName as string,
+                                  {
+                                    data: {
+                                      key: 'name',
+                                      value: updatedName
+                                    }
+                                  }
+                                );
+                              }
+                            }
+                            this.setState({
+                              editingNode: null,
+                              editingNodeValue: null
+                            });
+                          }
+                        }}
+                        style={{
+                          width: '100%',
+                          background: 'transparent',
+                          border: 'none',
+                          outline: 'none',
+                          fontSize: 'inherit',
+                          color: 'inherit'
+                        }}
+                      />
+                    ) : (
+                      opts.node.label
+                    )}
                   </span>
                   {opts.type === 'leaf' ? (
                     <div style={{ display: 'flex' }}>

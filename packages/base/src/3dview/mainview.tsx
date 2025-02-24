@@ -22,6 +22,7 @@ import { TransformControls } from 'three/examples/jsm/controls/TransformControls
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
 import { ViewHelper } from 'three/examples/jsm/helpers/ViewHelper';
+import { IParsedShape } from '@jupytercad/schema';
 
 import { FloatingAnnotation } from '../annotation';
 import { getCSSVariableColor, throttle } from '../tools';
@@ -1019,38 +1020,65 @@ export class MainView extends React.Component<IProps, IStates> {
     postResult: IPostResult
   ): Promise<void> {
     const { binary, format, value } = postResult;
-    let obj: THREE.BufferGeometry | undefined = undefined;
-    if (format === 'STL') {
-      let buff: string | ArrayBuffer;
-      if (binary) {
-        const str = `data:application/octet-stream;base64,${value}`;
-        const b = await fetch(str);
-        buff = await b.arrayBuffer();
-      } else {
-        buff = value;
-      }
-      const loader = new STLLoader();
-      obj = loader.parse(buff);
+    if (format !== 'STL') {
+      return;
     }
+    let buff: string | ArrayBuffer;
+    if (binary) {
+      const str = `data:application/octet-stream;base64,${value}`;
+      const b = await fetch(str);
+      buff = await b.arrayBuffer();
+    } else {
+      buff = value;
+    }
+    const loader = new STLLoader();
+    const geometry = loader.parse(buff);
 
-    if (!obj) {
+    if (!geometry) {
       return;
     }
 
-    const material = new THREE.MeshPhongMaterial({
-      color: DEFAULT_MESH_COLOR,
-      wireframe: this.state.wireframe
-    });
-    const mesh = new THREE.Mesh(obj, material);
+    const parsedShape: IParsedShape = {
+      jcObject: { name: 'example', visible: true },
+      faceList: [],
+      edgeList: []
+    };
 
-    const lineGeo = new THREE.WireframeGeometry(mesh.geometry);
-    const mat = new THREE.LineBasicMaterial({ color: 'black' });
-    const wireframe = new THREE.LineSegments(lineGeo, mat);
-    mesh.add(wireframe);
-    mesh.name = name;
-    if (this._meshGroup) {
-      this._meshGroup.add(mesh);
-      this._boundingGroup?.expandByObject(mesh);
+    const obj = this._model.sharedModel.getObjectByName(name);
+    const objColor = obj?.parameters?.Color;
+    const isWireframe = this.state.wireframe;
+
+    const output = buildShape({
+      objName: name,
+      data: parsedShape,
+      clippingPlanes: this._clippingPlanes,
+      isSolid: true,
+      isWireframe,
+      objColor
+    });
+
+    if (output) {
+      const { meshGroup, mainMesh, edgesMeshes } = output;
+
+      if (meshGroup.userData.jcObject.visible) {
+        this._boundingGroup?.expandByObject(meshGroup);
+      }
+
+      if (mainMesh.material?.color) {
+        const originalMeshColor = new THREE.Color(
+          objColor || DEFAULT_MESH_COLOR
+        );
+        mainMesh.material.color = originalMeshColor;
+        mainMesh.userData.originalColor = originalMeshColor.clone();
+      }
+
+      edgesMeshes.forEach(edgeMesh => {
+        this._edgeMaterials.push(edgeMesh.material);
+        const edgeColor = new THREE.Color(objColor || DEFAULT_EDGE_COLOR);
+        edgeMesh.material.color = edgeColor;
+      });
+
+      this._meshGroup?.add(meshGroup);
     }
     this._updateRefLength(true);
   }

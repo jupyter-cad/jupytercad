@@ -301,7 +301,7 @@ export function buildShape(options: {
   const edgesMeshes: LineSegments2[] = [];
   for (const edge of edgeList) {
     const edgeMaterial = new LineMaterial({
-      linewidth: DEFAULT_LINEWIDTH,
+      linewidth: DEFAULT_LINEWIDTH / window.devicePixelRatio,
       color: new THREE.Color(DEFAULT_EDGE_COLOR).getHex(),
       clippingPlanes,
       // Depth offset so that lines are most always on top of faces

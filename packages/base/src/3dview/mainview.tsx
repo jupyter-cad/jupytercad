@@ -277,11 +277,12 @@ export class MainView extends React.Component<IProps, IStates> {
       });
 
       this._clock = new THREE.Clock();
-      // this._renderer.setPixelRatio(window.devicePixelRatio);
       this._renderer.autoClear = false;
       this._renderer.setClearColor(0x000000, 0);
       this._renderer.setSize(500, 500, false);
       this._divRef.current.appendChild(this._renderer.domElement); // mount using React ref
+      this._renderer.domElement.style.width = '100%';
+      this._renderer.domElement.style.height = '100%';
 
       this._syncPointer = throttle(
         (position: THREE.Vector3 | undefined, parent: string | undefined) => {
@@ -605,11 +606,17 @@ export class MainView extends React.Component<IProps, IStates> {
 
   resizeCanvasToDisplaySize = (): void => {
     if (this._divRef.current !== null) {
+      const pixelRatio = window.devicePixelRatio;
+
+      console.log('current pixel ratio', pixelRatio);
+
+      this._renderer.setPixelRatio(pixelRatio);
       this._renderer.setSize(
-        this._divRef.current.clientWidth,
-        this._divRef.current.clientHeight,
+        this._divRef.current.clientWidth * pixelRatio,
+        this._divRef.current.clientHeight * pixelRatio,
         false
       );
+
       if (this._camera instanceof THREE.PerspectiveCamera) {
         this._camera.aspect =
           this._divRef.current.clientWidth / this._divRef.current.clientHeight;
@@ -619,7 +626,10 @@ export class MainView extends React.Component<IProps, IStates> {
         this._camera.top = this._divRef.current.clientHeight / 2;
         this._camera.bottom = this._divRef.current.clientHeight / -2;
       }
+
       this._camera.updateProjectionMatrix();
+
+      this._createViewHelper();
     }
   };
 
@@ -937,7 +947,8 @@ export class MainView extends React.Component<IProps, IStates> {
           } else {
             if (objColor && el.material?.color) {
               el.material.color = originalEdgeColor;
-              el.material.linewidth = DEFAULT_LINEWIDTH;
+              el.material.linewidth =
+                DEFAULT_LINEWIDTH / window.devicePixelRatio;
               el.userData.originalColor = originalEdgeColor.clone();
             }
           }
@@ -1225,7 +1236,7 @@ export class MainView extends React.Component<IProps, IStates> {
         linewidth?: number;
       };
       if (material?.linewidth) {
-        material.linewidth = DEFAULT_LINEWIDTH;
+        material.linewidth = DEFAULT_LINEWIDTH / window.devicePixelRatio;
       }
     }
 
@@ -1617,7 +1628,7 @@ export class MainView extends React.Component<IProps, IStates> {
         // Draw lines
         const material = new THREE.LineBasicMaterial({
           color: DEFAULT_EDGE_COLOR,
-          linewidth: DEFAULT_LINEWIDTH
+          linewidth: DEFAULT_LINEWIDTH / window.devicePixelRatio
         });
         const geometry = new THREE.BufferGeometry().setFromPoints([
           explodedState.oldGeometryCenter,
